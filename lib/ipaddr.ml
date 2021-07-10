@@ -428,6 +428,36 @@ module V4 = struct
 
     let last ((_, sz) as cidr) =
       if sz > 30 then broadcast cidr else broadcast cidr |> pred |> failwith_msg
+
+    let hosts ?(usable=true) cidr =
+      let rec iter_seq start stop =
+        if compare (start, 32) (stop, 32) > 0 then Seq.Nil
+        else
+          match succ start with
+          | Ok start_succ -> Seq.Cons (start, fun () -> iter_seq start_succ stop)
+          | Error _ -> Seq.Cons (start, fun () -> Seq.Nil)
+      in
+      let start, stop =
+        if usable then first cidr, last cidr
+        else network cidr, broadcast cidr
+      in
+      fun () -> iter_seq start stop
+
+    let subnets n (_, sz as cidr) =
+      let rec iter_seq start stop steps =
+        if compare (start, 32) (stop, 32) > 0 then Seq.Nil
+        else
+          let prefix = make n (of_int32 start) in
+          let start_succ = Int32.add start steps in
+          if start_succ = 0l then Seq.Cons (prefix, fun () -> Seq.Nil)
+          else Seq.Cons (prefix, fun () -> iter_seq start_succ stop steps)
+      in
+      if sz > n || n > 32 then fun () -> Seq.Nil
+      else
+        let start = network cidr in
+        let stop = broadcast cidr in
+        let steps = Int32.of_float (Float.pow 2. (Float.of_int (32 - n))) in
+        fun () -> iter_seq start stop steps
   end
 
   (* TODO: this could be optimized with something trie-like *)

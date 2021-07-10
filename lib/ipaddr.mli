@@ -290,6 +290,15 @@ module V4 : sig
     val last : t -> addr
     (** [last cidr] is last valid unicast address in this [cidr]. *)
 
+    val hosts : ?usable:bool -> t -> addr Seq.t
+    (** [hosts cidr] is the sequence of host addresses in this [cidr]. By
+        default, network and broadcast addresses are omitted. This can be
+        changed by setting [usable] to false. *)
+
+    val subnets : int -> t -> t Seq.t
+    (** [subnets n cidr] is the sequence of subnets of [cidr] with a prefix
+        length of [n]. *)
+
     include Map.OrderedType with type t := t
   end
 
