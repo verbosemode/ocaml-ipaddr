@@ -974,6 +974,23 @@ module V6 = struct
     let last ((_, sz) as cidr) =
       let ffff = ip 0xffff 0xffff 0xffff 0xffff 0xffff 0xffff 0xffff 0xffff in
       logor (network cidr) (shift_right ffff sz |> failwith_msg)
+
+    let hosts ?(usable=true) cidr =
+      let rec iter_seq start stop =
+        if B128.compare start stop > 0 then Seq.Nil
+        else
+          match succ start with
+          | Ok start_succ -> Seq.Cons (start, fun () -> iter_seq start_succ stop)
+          | Error _ -> Seq.Cons (start, fun () -> Seq.Nil)
+      in
+      let start, stop =
+        if usable then first cidr, last cidr
+        else network cidr, last cidr
+      in
+      fun () -> iter_seq start stop
+
+    let subnets n (_, sz as cidr) =
+      failwith "not implemented yet"
   end
 
   (* TODO: This could be optimized with something trie-like *)

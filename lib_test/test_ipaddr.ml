@@ -965,6 +965,66 @@ module Test_v6 = struct
     assert_equal ~msg:"last ::aaa0/128" (ip_of_string "::aaa0")
       (last @@ of_string_exn "::aaa0/128")
 
+  let test_hosts () =
+    let nets =
+      [
+        ("2001:db8:0:ffff::/128", ["2001:db8:0:ffff::"], false);
+        ("2001:db8:0:ffff::/128", ["2001:db8:0:ffff::"], true);
+        ("2001:db8:0:ffff::/127", ["2001:db8:0:ffff::"; "2001:db8:0:ffff::1"],
+         false);
+        ("2001:db8:0:ffff::/127", ["2001:db8:0:ffff::"; "2001:db8:0:ffff::1"],
+         true);
+        ("2001:db8:0:ffff::/126", ["2001:db8:0:ffff::"; "2001:db8:0:ffff::1";
+         "2001:db8:0:ffff::2"; "2001:db8:0:ffff::3"], false);
+        ("2001:db8:0:ffff::/126", ["2001:db8:0:ffff::1"; "2001:db8:0:ffff::2";
+         "2001:db8:0:ffff::3"], true);
+      ]
+    in
+    List.iter
+      (fun (net, hosts, usable_flag) ->
+        let hosts = List.map V6.of_string_exn hosts in
+        let hosts_list = List.of_seq (V6.Prefix.hosts ~usable:usable_flag
+          (V6.Prefix.of_string_exn net)) in
+        let msg =
+          Printf.sprintf
+            "incorrect sequence of hosts for %s (usable_flag: %b): %s"
+            net usable_flag (string_of_list V6.to_string hosts_list)
+        in
+        assert_equal ~msg hosts_list hosts)
+      nets
+
+  let test_subnets () =
+    let nets =
+      [
+        ("2001:db8:0:ffff::/128", [], 127);
+        ("2001:db8:0:ffff::/64", [], 63);
+        ("2001:db8:0:ffff::/127", ["2001:db8:0:ffff::/128";
+         "2001:db8:0:ffff::1/128"], 128);
+        ("::/0", ["::/1"; "8000::/1"], 1);
+        ("::/0", ["::/2"; "4000::/2"; "8000::/2"; "c000::/2"], 2);
+        ("2001:db8:0:ffff::/126", ["2001:db8:0:ffff::/127";
+         "2001:db8:0:ffff::2/127";], 127);
+        ("2001:db8:0:fff0::/60", ["2001:db8:0:fff0::/64";
+         "2001:db8:0:fff1::/64"; "2001:db8:0:fff2::/64"; "2001:db8:0:fff3::/64";
+         "2001:db8:0:fff4::/64"; "2001:db8:0:fff5::/64"; "2001:db8:0:fff6::/64";
+         "2001:db8:0:fff7::/64"; "2001:db8:0:fff8::/64"; "2001:db8:0:fff9::/64";
+         "2001:db8:0:fffa::/64"; "2001:db8:0:fffb::/64"; "2001:db8:0:fffc::/64";
+         "2001:db8:0:fffd::/64"; "2001:db8:0:fffe::/64"; "2001:db8:0:ffff::/64";
+         ], 64);
+      ]
+    in
+    List.iter
+      (fun (net, subnets, sz) ->
+        let subnets = List.map V6.Prefix.of_string_exn subnets in
+        let subnets_list =
+          List.of_seq (V6.Prefix.subnets sz (V6.Prefix.of_string_exn net)) in
+        let msg =
+          Printf.sprintf
+            "incorrect sequence of subnets for %s (prefix length: %i): %s" net
+            sz (string_of_list V6.Prefix.to_string subnets_list) in
+        assert_equal ~msg subnets_list subnets)
+      nets
+
   let suite =
     "Test V6"
     >::: [
@@ -991,6 +1051,8 @@ module Test_v6 = struct
            "link_address_of_mac" >:: test_link_address_of_mac;
            "succ_pred" >:: test_succ_pred;
            "first_last" >:: test_first_last;
+           "hosts" >:: test_hosts;
+           "subnets" >:: test_subnets;
          ]
 end
 

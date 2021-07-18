@@ -559,6 +559,15 @@ module V6 : sig
     val last : t -> addr
     (** [last subnet] is last valid unicast address in this [subnet]. *)
 
+    val hosts : ?usable:bool -> t -> addr Seq.t
+    (** [hosts subnet] is the sequence of host addresses in this [subnet]. By
+        default the Subnet-Router anycast address is omitted. This can be
+        changed by setting [usable] to false. *)
+
+    val subnets : int -> t -> t Seq.t
+    (** [subnets n subnet] is the sequence of subnets of [subnet] with a prefix
+        length of [n]. *)
+
     include Map.OrderedType with type t := t
   end
 
